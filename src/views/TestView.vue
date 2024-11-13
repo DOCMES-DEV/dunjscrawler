@@ -90,13 +90,13 @@ export default {
 
 
     document.addEventListener('keydown', (event) => {
-      if (event.key === 'z') {
+      if (event.key === 'z' || event.key === 'ArrowUp') {
         players[0].moveForward();
-      } else if (event.key === 's') {
+      } else if (event.key === 's' || event.key === 'ArrowDown') {
         players[0].moveBackward();
-      } else if (event.key === 'q') {
+      } else if (event.key === 'q' || event.key === 'ArrowLeft') {
         players[0].moveLeft();
-      } else if (event.key === 'd') {
+      } else if (event.key === 'd' || event.key === 'ArrowRight') {
         players[0].moveRight();
       }
     });
@@ -162,7 +162,9 @@ export default {
 
       // Reset scale of all players
       players.forEach(player => {
-        player.mesh.scale.set(1, 1, 1);
+        if(player.hover == false) {
+          player.mesh.position.y = 0.5;
+        }
       });
 
       if (intersects.length > 0) {
@@ -173,7 +175,11 @@ export default {
         players.forEach(player => {
           if (player.mesh === object) {
             // Apply hover effect (e.g., scale up)
-            player.mesh.scale.set(1.2, 1.2, 1.2);
+
+            //apply a hover effect and reset the position of the player
+
+
+            player.hoverAnimation();
           }
         });
       }

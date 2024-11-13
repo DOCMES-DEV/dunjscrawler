@@ -20,6 +20,7 @@ export default class Player {
       defense: 5,
       speed: 3,
     }
+    this.hover = false
   }
 
   resetMaterial() {
@@ -34,6 +35,20 @@ export default class Player {
       this.material = new THREE.MeshStandardMaterial({ color: 0x00ff00 })
     }
     this.mesh.material = this.material
+  }
+
+  hoverAnimation() {
+    if (this.hover) {
+      this.mesh.position.y += 0.01
+      if (this.mesh.position.y > 1.1) {
+        this.hover = false
+      }
+    } else {
+      this.mesh.position.y -= 0.01
+      if (this.mesh.position.y < 1) {
+        this.hover = true
+      }
+    }
   }
 
   setCoordonate(x, y) {
