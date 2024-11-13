@@ -5,7 +5,8 @@
 <script>
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import Personnage from './../class/Personnage';
+import Player from './../class/Player';
+import Grid from './../class/Grid';
 
 
 export default {
@@ -17,24 +18,27 @@ export default {
     this.$refs.threeContainer.appendChild(renderer.domElement);
 
     // Add grid
-    const size = 20;
+    const size = 40;
     const divisions = 10;
+    const grid = new Grid(divisions, divisions);
     const gridHelper = new THREE.GridHelper(size, divisions, new THREE.Color("rgb(255,255,255)"), new THREE.Color("rgb(255,255,255)"));
     const axesHelper = new THREE.AxesHelper(5);
     const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(size*10, size*10),
-      new THREE.MeshBasicMaterial({ color: new THREE.Color("rgb(255,255,255)"), side: THREE.DoubleSide })
+      new THREE.PlaneGeometry(size * 10, size * 10),
+      new THREE.MeshStandardMaterial({ color: new THREE.Color("rgb(255,255,255)"), side: THREE.DoubleSide })
     );
     const board = new THREE.Mesh(
       new THREE.BoxGeometry(size, size),
-      new THREE.MeshBasicMaterial({ color: 0x808080, side: THREE.DoubleSide })
+      new THREE.MeshStandardMaterial({ color: 0x808080, side: THREE.DoubleSide })
     );
 
+    axesHelper.position.y = 2;
+
     let elementDisplay = [
-        gridHelper,
-        axesHelper,
-        floor,
-        board
+      gridHelper,
+      axesHelper,
+      floor,
+      board
     ]
     board.rotation.x = Math.PI / 2;
     floor.rotation.x = Math.PI / 2;
@@ -42,29 +46,26 @@ export default {
     board.position.y = -0.5;
     //set gridHelper to be behind the board
     gridHelper.position.y = +0.01;
-    for(let element of elementDisplay){
-        scene.add(element);
+    for (let element of elementDisplay) {
+      scene.add(element);
     }
 
 
     // Add simple lighting
-const light = new THREE.AmbientLight( 0xB1E1FF,2 );
-const pointLight = new THREE.PointLight(0xffffff, 0.1);
+    const ambientLight = new THREE.AmbientLight(0x404040); // soft white light
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    const pointLight = new THREE.PointLight(0xffffff, 1, 100);
+    pointLight.position.set(50, 50, 50);
 
-pointLight.position.x = 2;
 
-pointLight.position.y = 3;
-
-pointLight.position.z = 4;
-
-pointLight.intensity = 2;
 
     let lights = [
-        light,
-        pointLight
+      ambientLight,
+      pointLight,
+      directionalLight
     ]
-    for(let light of lights){
-        scene.add(light);
+    for (let light of lights) {
+      scene.add(light);
     }
 
     // Add OrbitControls for camera
@@ -78,14 +79,27 @@ pointLight.intensity = 2;
     controls.update();
 
 
-    let personnages = []
-    personnages.push(new Personnage(5,5,scene,'archer'));
-    personnages.push(new Personnage(5,-5,scene,'barbarian'));
-    personnages.push(new Personnage(-5,5,scene,'wizard'));
-    for(let personnage of personnages){
-        personnage.initPersonnage();
+    let players = []
+    players.push(new Player(1, 1, scene, 'archer', size, divisions, grid));
+
+    for (let player of players) {
+      player.initPlayer();
     }
 
+
+
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'z') {
+        players[0].moveForward();
+      } else if (event.key === 's') {
+        players[0].moveBackward();
+      } else if (event.key === 'q') {
+        players[0].moveLeft();
+      } else if (event.key === 'd') {
+        players[0].moveRight();
+      }
+    });
 
     const animate = function () {
       requestAnimationFrame(animate);
@@ -96,8 +110,78 @@ pointLight.intensity = 2;
     };
 
     animate();
+
+    const onMouseClick = (event) => {
+      // Calculate mouse position in normalized device coordinates (-1 to +1) for both components
+      const mouse = new THREE.Vector2();
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      // Create a raycaster and set its position
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(mouse, camera);
+
+      // Calculate objects intersecting the picking ray
+      const intersects = raycaster.intersectObjects(scene.children, true);
+      let user_interact = false;
+      if (intersects.length > 0) {
+        const intersect = intersects[0];
+        const object = intersect.object;
+
+        // Check if the intersected object is a player
+        players.forEach(player => {
+          if (player.mesh === object) {
+            user_interact = true;
+            // Apply click effect (e.g., change color)
+            player.mesh.material.color.set(0xff0000);
+          }
+        });
+
+      }
+      if (!user_interact) {
+        players.forEach(player => {
+          player.resetMaterial();
+        });
+      }
+    }
+
+    window.addEventListener('click', onMouseClick.bind(this), false);
+
+    const onMouseMove = (event) => {
+      // Calculate mouse position in normalized device coordinates (-1 to +1) for both components
+      const mouse = new THREE.Vector2();
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      // Create a raycaster and set its position
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(mouse, camera);
+
+      // Calculate objects intersecting the picking ray
+      const intersects = raycaster.intersectObjects(scene.children, true);
+
+      // Reset scale of all players
+      players.forEach(player => {
+        player.mesh.scale.set(1, 1, 1);
+      });
+
+      if (intersects.length > 0) {
+        const intersect = intersects[0];
+        const object = intersect.object;
+
+        // Check if the intersected object is a player
+        players.forEach(player => {
+          if (player.mesh === object) {
+            // Apply hover effect (e.g., scale up)
+            player.mesh.scale.set(1.2, 1.2, 1.2);
+          }
+        });
+      }
+    }
+    window.addEventListener('mousemove', onMouseMove.bind(this), false);
   }
-};
+}
+
 </script>
 
 <style>

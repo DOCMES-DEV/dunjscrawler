@@ -1,4 +1,12 @@
 {
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "src/*"
+      ],
+    }
+  },
   "files": [],
   "references": [
     {
@@ -9,6 +17,6 @@
     },
     {
       "path": "./tsconfig.vitest.json"
-    }
+    },
   ]
 }
