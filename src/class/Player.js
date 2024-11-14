@@ -18,9 +18,10 @@ export default class Player {
       health: 100,
       attack: 10,
       defense: 5,
-      speed: 3,
+      speed: 1,
     }
     this.hover = false
+    this.selected = false
   }
 
   resetMaterial() {

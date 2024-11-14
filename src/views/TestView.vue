@@ -7,6 +7,9 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import Player from './../class/Player';
 import Grid from './../class/Grid';
+import Stats from 'three/addons/libs/stats.module.js'
+  import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer";
+
 
 
 export default {
@@ -21,12 +24,16 @@ export default {
       this.renderer = new THREE.WebGLRenderer();
       this.renderer.setSize(window.innerWidth, window.innerHeight);
       this.$refs.threeContainer.appendChild(this.renderer.domElement);
+      const stats = new Stats();
+      this.$refs.threeContainer.appendChild(stats.dom);
 
       // Add grid
       this.size = 40;
-      this.divisions = 10;
-      this.grid = new Grid(this.divisions, this.divisions);
-      const gridHelper = new THREE.GridHelper(this.size, this.divisions, new THREE.Color("rgb(255,255,255)"), new THREE.Color("rgb(255,255,255)"));
+      this.divisions = 20;
+      this.grid = new Grid(this.divisions, this.divisions,this.scene,this.size,this.divisions);
+
+
+
       const axesHelper = new THREE.AxesHelper(5);
       const floor = new THREE.Mesh(
         new THREE.PlaneGeometry(this.size * 10, this.size * 10),
@@ -40,7 +47,6 @@ export default {
       axesHelper.position.y = 2;
 
       let elementDisplay = [
-        gridHelper,
         axesHelper,
         floor,
         board
@@ -50,7 +56,6 @@ export default {
       floor.position.y = -0.5;
       board.position.y = -0.5;
       //set gridHelper to be behind the board
-      gridHelper.position.y = +0.01;
       for (let element of elementDisplay) {
         this.scene.add(element);
       }
@@ -93,9 +98,30 @@ export default {
       window.addEventListener('resize', this.onWindowResize.bind(this), false);
 
     },
+    addUpdateCell(x,z,type) {
+
+    },
+
+    addLabel(text, x, y, z) {
+      console.log(`adding label at ${x}, ${y}, ${z} with text: ${text}`);
+        const div = document.createElement("div");
+        div.className = "label";
+        div.textContent = text;
+        div.style.color = "black";
+        div.style.fontSize = "12px";
+        div.style.backgroundColor = "rgba(255, 255, 255, 0.7)";
+        div.style.padding = "2px 5px";
+        div.style.borderRadius = "3px";
+        div.style.position = "absolute";
+        div.style.transform = "translate(-50%, -50%)";
+
+        const label = new CSS2DObject(div);
+        label.position.set(x, y, z);
+        this.scene.add(label);
+      },
     initPlayer() {
       this.players = []
-      this.players.push(new Player(1, 1, this.scene, 'archer', this.size, this.divisions, this.grid));
+      this.players.push(new Player(10, 10, this.scene, 'archer', this.size, this.divisions, this.grid));
 
       for (let player of this.players) {
         player.initPlayer();
@@ -131,6 +157,7 @@ export default {
       let user_interact = false;
       if (intersects.length > 0) {
         const intersect = intersects[0];
+        console.log(intersect);
         const object = intersect.object;
 
         // Check if the intersected object is a player
@@ -138,16 +165,21 @@ export default {
           if (player.mesh === object) {
             user_interact = true;
             // Apply click effect (e.g., change color)
+            console.log('player clicked',player);
+            if(player.selected){
+              player.selected = false;
+              this.grid.clearAllHighlights();
+              player.resetMaterial();
+              return;
+            }
+            player.selected = true;
             player.mesh.material.color.set(0xff0000);
+            this.grid.highlightCellsInRange(player.gridX, player.gridY, player.stats.speed);
           }
         });
 
       }
-      if (!user_interact) {
-        this.players.forEach(player => {
-          player.resetMaterial();
-        });
-      }
+
 
     },
 
