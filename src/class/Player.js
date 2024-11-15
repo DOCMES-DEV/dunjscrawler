@@ -18,7 +18,7 @@ export default class Player {
       health: 100,
       attack: 10,
       defense: 5,
-      speed: 2,
+      speed: 3,
     }
     this.hover = false
     this.selected = false
