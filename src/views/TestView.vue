@@ -4,19 +4,45 @@
 
 <script>
 import * as THREE from 'three'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import Player from './../class/Player'
 import Grid from './../class/Grid'
 import Stats from 'three/addons/libs/stats.module.js'
+import Enviroment from './../class/Environement'
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer'
 
 export default {
   mounted() {
     this.initScene()
     this.initPlayer()
+    this.initWall()
+    this.load3DModels()
   },
   methods: {
+    load3DModels() {
+      const loader = new GLTFLoader()
+      loader.load(
+  'assets/3dModel/walls/wall_1.glb', // Remplace par le chemin vers ton fichier glTF
+  (gltf) => {
+    const model = gltf.scene;
+    model.scale.set(10, 10, 10);
+    model.position.set(0, 10, 0);
+    this.scene.add(model);
+    const box = new THREE.BoxHelper(model, 0xffff00);
+    this.scene.add(box);
+    console.log('glTF chargé avec succès', gltf);
+  },
+  (xhr) => {
+    console.log((xhr.loaded / xhr.total) * 100 + '% chargé');
+  },
+  (error) => {
+    console.error('Erreur lors du chargement du glTF :', error);
+  }
+);
+    },
     initScene() {
+      this.raycastList = []
       this.scene = new THREE.Scene()
       this.camera = new THREE.PerspectiveCamera(
         75,
@@ -118,6 +144,11 @@ export default {
       }
     },
 
+    initWall() {
+      this.environement = new Enviroment(this.scene,this.grid,this.size,this.divisions)
+      this.environement.initWalls()
+    },
+
     onWindowResize() {
       this.camera.aspect = window.innerWidth / window.innerHeight
       this.camera.updateProjectionMatrix()
@@ -131,6 +162,17 @@ export default {
     },
 
     onMouseClick(event) {
+      // if click is right click, return
+      if (event.button === 2) {
+        return
+      }
+
+
+      // if click is hold and drag, return
+      if (event.movementX > 0 || event.movementY > 0) {
+        return
+      }
+
       const mouse = new THREE.Vector2()
       mouse.x = (event.clientX / window.innerWidth) * 2 - 1
       mouse.y = -(event.clientY / window.innerHeight) * 2 + 1
@@ -140,6 +182,24 @@ export default {
       raycaster.setFromCamera(mouse, this.camera)
 
       // Calculate objects intersecting the picking ray
+
+      //display the raycast
+
+
+
+      const geometry = new THREE.BufferGeometry().setFromPoints([raycaster.ray.origin, raycaster.ray.origin.clone().add(raycaster.ray.direction.multiplyScalar(1000))])
+      const material = new THREE.LineBasicMaterial({ color: 0xff0000 })
+      const line = new THREE.Line(geometry, material)
+      if(this.raycastList.length > 0){
+        this.raycastList.forEach((raycast) => {
+          this.scene.remove(raycast)
+        })
+      }
+      this.raycastList = []
+      this.raycastList.push(line)
+
+      this.scene.add(line)
+
       const intersects = raycaster.intersectObjects(this.scene.children, true)
       let user_interact = false
       if (intersects.length > 0) {
