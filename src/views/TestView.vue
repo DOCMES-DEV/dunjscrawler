@@ -169,9 +169,7 @@ export default {
 
 
       // if click is hold and drag, return
-      if (event.movementX > 0 || event.movementY > 0) {
-        return
-      }
+
 
       const mouse = new THREE.Vector2()
       mouse.x = (event.clientX / window.innerWidth) * 2 - 1
@@ -247,6 +245,7 @@ export default {
     },
 
     onMouseMove(event) {
+
       // Calculate mouse position in normalized device coordinates (-1 to +1) for both components
       const mouse = new THREE.Vector2()
       mouse.x = (event.clientX / window.innerWidth) * 2 - 1

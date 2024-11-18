@@ -119,9 +119,11 @@ export default class Grid {
     for (let x = playerX - speed; x <= playerX + speed; x++) {
       for (let y = playerY - speed; y <= playerY + speed; y++) {
         if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
-          // console.log(this.cells[x + y * this.width])
+          console.log('update cell', x, y)
           this.cells[x + y * this.width].setOutilineColor(0xff0000)
           this.cells[x + y * this.width].setType('movableDestination')
+
+          console.log(this.cells[x + y * this.width])
         }
       }
     }
