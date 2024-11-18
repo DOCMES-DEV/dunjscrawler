@@ -26,11 +26,17 @@ class Cell {
     x += size / subdivise / 2
     y += size / subdivise / 2
     this.geometry = new THREE.PlaneGeometry(size / subdivise, size / subdivise, size / subdivise)
-    this.material = new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide })
+    this.material = new THREE.MeshPhongMaterial({ color: 0x000000, side: THREE.DoubleSide })
     this.plane = new THREE.Mesh(this.geometry, this.material)
     this.plane.rotation.x = Math.PI / 2
     this.plane.position.set(x, 0.1, y)
     this.plane.visible = false
+    this.plane.receiveShadow = true
+    this.plane.userData = {
+      x: this.x,
+      y: this.y,
+    }
+    this.plane.name = 'cell ' + this.x + ' ' + this.y
     scene.add(this.plane)
 
     this.edgeGeometry = new THREE.EdgesGeometry(this.geometry)

@@ -4,42 +4,78 @@
 
 <script>
 import * as THREE from 'three'
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import Player from './../class/Player'
 import Grid from './../class/Grid'
 import Stats from 'three/addons/libs/stats.module.js'
 import Enviroment from './../class/Environement'
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer'
+import { GUI } from 'dat.gui'
 
 export default {
   mounted() {
+    this.objects = []
     this.initScene()
     this.initPlayer()
     this.initWall()
-    this.load3DModels()
+    this.initGUI()
   },
   methods: {
-    load3DModels() {
-      const loader = new GLTFLoader()
-      loader.load(
-  'assets/3dModel/walls/wall_1.glb', // Remplace par le chemin vers ton fichier glTF
-  (gltf) => {
-    const model = gltf.scene;
-    model.scale.set(10, 10, 10);
-    model.position.set(0, 10, 0);
-    this.scene.add(model);
-    const box = new THREE.BoxHelper(model, 0xffff00);
-    this.scene.add(box);
-    console.log('glTF chargé avec succès', gltf);
-  },
-  (xhr) => {
-    console.log((xhr.loaded / xhr.total) * 100 + '% chargé');
-  },
-  (error) => {
-    console.error('Erreur lors du chargement du glTF :', error);
-  }
-);
+     load3DModels() {
+
+    },
+    initGUI() {
+      this.gui = new GUI()
+      const objectFolder = this.gui.addFolder('Objects')
+      console.log(this.objects)
+      this.objects.forEach((object, index) => {
+        objectFolder
+          .add({ focus: () => this.focusOnObject(object) }, 'focus')
+          .name(`Object ${index + 1}`)
+      })
+      objectFolder.open()
+
+      // Folder for ambient light
+      const ambientFolder = this.gui.addFolder('Ambient Light')
+      ambientFolder.add(this.ambientLight, 'intensity', 0, 2).name('Intensity')
+      ambientFolder.addColor(this.ambientLight, 'color').name('Color')
+      ambientFolder.add(this.ambientLight.position, 'x', -20, 20).name('Position X')
+      ambientFolder.add(this.ambientLight.position, 'y', -20, 20).name('Position Y')
+      ambientFolder.add(this.ambientLight.position, 'z', -20, 20).name('Position Z')
+
+      ambientFolder.open()
+
+      // Folder for directional light
+      const directionalFolder = this.gui.addFolder('Directional Light')
+      directionalFolder.add(this.directionalLight, 'intensity', 0, 2).name('Intensity')
+      directionalFolder.add(this.directionalLight.position, 'x', -20, 20).name('Position X')
+      directionalFolder.add(this.directionalLight.position, 'y', -20, 20).name('Position Y')
+      directionalFolder.add(this.directionalLight.position, 'z', -20, 20).name('Position Z')
+      directionalFolder.add(this.directionalLight, 'castShadow').name('Cast Shadow')
+
+      directionalFolder.open()
+
+      // Folder for point light
+      const pointFolder = this.gui.addFolder('Point Light')
+      pointFolder.add(this.pointLight, 'intensity', 0, 2).name('Intensity')
+      pointFolder.add(this.pointLight.position, 'x', -20, 20).name('Position X')
+      pointFolder.add(this.pointLight.position, 'y', -20, 20).name('Position Y')
+      pointFolder.add(this.pointLight.position, 'z', -20, 20).name('Position Z')
+      pointFolder.open()
+
+      // Folder for hemisphere light
+      const hemisphereFolder = this.gui.addFolder('Hemisphere Light')
+      hemisphereFolder.add(this.hemisphereLight, 'intensity', 0, 2).name('Intensity')
+      hemisphereFolder.addColor(this.hemisphereLight, 'skyColor').name('Sky Color')
+      hemisphereFolder.addColor(this.hemisphereLight, 'groundColor').name('Ground Color')
+      hemisphereFolder.open()
+    },
+    focusOnObject(object) {
+      const box = new THREE.Box3().setFromObject(object)
+      const center = box.getCenter(new THREE.Vector3())
+      this.controls.target.copy(center)
+      this.camera.position.set(center.x, center.y + 2, center.z + 2)
+      this.controls.update()
     },
     initScene() {
       this.raycastList = []
@@ -51,6 +87,12 @@ export default {
         1000,
       )
       this.renderer = new THREE.WebGLRenderer()
+      this.renderer.physicallyCorrectLights = true // Active un comportement physique pour les lumières
+      this.renderer.outputEncoding = THREE.sRGBEncoding // Corrige les couleurs pour un rendu plus réaliste
+      this.renderer.toneMapping = THREE.ACESFilmicToneMapping // Meilleur rendu pour les lumières intenses
+      this.renderer.toneMappingExposure = 1 // Ajuste l'exposition globale
+      this.renderer.shadowMap.enabled = true // Active les ombres
+      this.renderer.shadowMap.type = THREE.PCFSoftShadowMap // Ombres douces
       this.renderer.setSize(window.innerWidth, window.innerHeight)
       this.$refs.threeContainer.appendChild(this.renderer.domElement)
       const stats = new Stats()
@@ -64,19 +106,21 @@ export default {
       const axesHelper = new THREE.AxesHelper(5)
       const floor = new THREE.Mesh(
         new THREE.PlaneGeometry(this.size * 10, this.size * 10),
-        new THREE.MeshStandardMaterial({
+        new THREE.MeshPhongMaterial({
           color: new THREE.Color('rgb(255,255,255)'),
           side: THREE.DoubleSide,
         }),
       )
+      floor.receiveShadow = true
       const board = new THREE.Mesh(
         new THREE.BoxGeometry(this.size, this.size),
-        new THREE.MeshStandardMaterial({ color: 0x808080, side: THREE.DoubleSide }),
+        new THREE.MeshPhongMaterial({ color: 0x808080, side: THREE.DoubleSide }),
       )
+      board.receiveShadow = true
 
       axesHelper.position.y = 2
 
-      let elementDisplay = [axesHelper, floor, board]
+      let elementDisplay = [floor, board]
       board.rotation.x = Math.PI / 2
       floor.rotation.x = Math.PI / 2
       floor.position.y = -0.5
@@ -87,15 +131,38 @@ export default {
       }
 
       // Add simple lighting
-      const ambientLight = new THREE.AmbientLight(0x404040) // soft white light
-      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5)
-      const pointLight = new THREE.PointLight(0xffffff, 1, 100)
-      pointLight.position.set(50, 50, 50)
 
-      let lights = [ambientLight, pointLight, directionalLight]
+      // Add directional light
+      this.directionalLight = new THREE.DirectionalLight(0xffffff, 3)
+      this.directionalLight.position.set(10, 20, 10)
+      this.directionalLight.target.position.set(0, 0, 0)
+      this.directionalLight.shadow.camera.near = 0.1
+      this.directionalLight.shadow.camera.far = 500
+      this.directionalLight.shadow.camera.left = -50
+      this.directionalLight.shadow.camera.right = 50
+      this.directionalLight.shadow.camera.top = 50
+      this.directionalLight.shadow.camera.bottom = -50
+      this.directionalLight.shadow.mapSize.width = 1024
+      this.directionalLight.shadow.mapSize.height = 1024
+      this.directionalLight.castShadow = true
+
+      // Add point light
+
+      // Add Hemisphere light
+      this.hemisphereLight = new THREE.HemisphereLight(0xffffbb, 0x080820, 1.5)
+
+      let lights = [this.directionalLight, this.hemisphereLight]
       for (let light of lights) {
         this.scene.add(light)
       }
+
+      // Add helpers for each light
+      const directionalLightHelper = new THREE.DirectionalLightHelper(this.directionalLight, 2)
+      const hemisphereLightHelper = new THREE.HemisphereLightHelper(this.hemisphereLight, 2)
+
+      this.scene.add(directionalLightHelper)
+      // this.scene.add(pointLightHelper);
+      this.scene.add(hemisphereLightHelper)
 
       // Add OrbitControls for camera
       this.controls = new OrbitControls(this.camera, this.renderer.domElement)
@@ -145,7 +212,7 @@ export default {
     },
 
     initWall() {
-      this.environement = new Enviroment(this.scene,this.grid,this.size,this.divisions)
+      this.environement = new Enviroment(this.scene, this.grid, this.size, this.divisions)
       this.environement.initWalls()
     },
 
@@ -167,9 +234,7 @@ export default {
         return
       }
 
-
       // if click is hold and drag, return
-
 
       const mouse = new THREE.Vector2()
       mouse.x = (event.clientX / window.innerWidth) * 2 - 1
@@ -177,18 +242,24 @@ export default {
 
       // Create a raycaster and set its position
       const raycaster = new THREE.Raycaster()
+      raycaster.layers.set(0)
       raycaster.setFromCamera(mouse, this.camera)
 
       // Calculate objects intersecting the picking ray
 
       //display the raycast
 
+      const intersects = raycaster.intersectObjects(this.scene.children, true)
 
-
-      const geometry = new THREE.BufferGeometry().setFromPoints([raycaster.ray.origin, raycaster.ray.origin.clone().add(raycaster.ray.direction.multiplyScalar(1000))])
+      const geometry = new THREE.BufferGeometry().setFromPoints([
+        raycaster.ray.origin,
+        raycaster.ray.origin.clone().add(raycaster.ray.direction.multiplyScalar(1000)),
+      ])
       const material = new THREE.LineBasicMaterial({ color: 0xff0000 })
       const line = new THREE.Line(geometry, material)
-      if(this.raycastList.length > 0){
+      line.name = 'raycast-line'
+      line.isRaycastLine = true
+      if (this.raycastList.length > 0) {
         this.raycastList.forEach((raycast) => {
           this.scene.remove(raycast)
         })
@@ -198,18 +269,19 @@ export default {
 
       this.scene.add(line)
 
-      const intersects = raycaster.intersectObjects(this.scene.children, true)
       let user_interact = false
+      intersects.filter((intersect) => !intersect.object.name.includes('raycast-line'))
       if (intersects.length > 0) {
+        console.log(intersects[0].object)
         const intersect = intersects[0]
         console.log(intersect)
         const object = intersect.object
 
-
         let outline_clicked = this.grid.cells.filter((cell) => cell.outline.uuid === object.uuid)
+        console.log('outline clicked', outline_clicked)
         if (outline_clicked.length > 0) {
           let cell = outline_clicked[0]
-          console.log(cell)
+          console.log('cell clicked', cell)
           if (cell.type === 'movableDestination') {
             console.log('cell highlighted')
             this.players.forEach((player) => {
@@ -245,7 +317,6 @@ export default {
     },
 
     onMouseMove(event) {
-
       // Calculate mouse position in normalized device coordinates (-1 to +1) for both components
       const mouse = new THREE.Vector2()
       mouse.x = (event.clientX / window.innerWidth) * 2 - 1
