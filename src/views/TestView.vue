@@ -11,7 +11,7 @@ import Stats from 'three/addons/libs/stats.module.js'
 import Enviroment from './../class/Environement'
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer'
 import { GUI } from 'dat.gui'
-
+import Enemy from './../class/Enemy'
 export default {
   mounted() {
     this.objects = []
@@ -122,9 +122,10 @@ export default {
 
       let elementDisplay = [floor, board]
       board.rotation.x = Math.PI / 2
+
       floor.rotation.x = Math.PI / 2
-      floor.position.y = -0.5
-      board.position.y = -0.5
+      floor.position.y = -2
+      board.position.y = -1.5
       //set gridHelper to be behind the board
       for (let element of elementDisplay) {
         this.scene.add(element)
@@ -160,9 +161,9 @@ export default {
       const directionalLightHelper = new THREE.DirectionalLightHelper(this.directionalLight, 2)
       const hemisphereLightHelper = new THREE.HemisphereLightHelper(this.hemisphereLight, 2)
 
-      this.scene.add(directionalLightHelper)
+      // this.scene.add(directionalLightHelper)
       // this.scene.add(pointLightHelper);
-      this.scene.add(hemisphereLightHelper)
+      // this.scene.add(hemisphereLightHelper)
 
       // Add OrbitControls for camera
       this.controls = new OrbitControls(this.camera, this.renderer.domElement)
@@ -203,12 +204,35 @@ export default {
     initPlayer() {
       this.players = []
       this.players.push(
-        new Player(10, 10, this.scene, 'archer', this.size, this.divisions, this.grid),
+        new Player(10, 10, this.scene, 'barbarian', this.size, this.divisions, this.grid,'left'),
+      )
+
+      this.players.push(
+        new Player(10, 15, this.scene, 'archer', this.size, this.divisions, this.grid),
+      )
+      this.players.push(
+        new Player(15, 10, this.scene, 'mage', this.size, this.divisions, this.grid,'right'),
       )
 
       for (let player of this.players) {
         player.initPlayer()
       }
+
+      this.initEnemy()
+    },
+
+    async initEnemy() {
+      this.enemies = []
+      this.enemies.push(
+        new Enemy(5, 5, this.scene, 'goblin', this.size, this.divisions, this.grid,'down'),
+      )
+
+
+
+      for (let enemy of this.enemies) {
+        await enemy.initEnemy()
+      }
+
     },
 
     initWall() {
@@ -329,12 +353,7 @@ export default {
       // Calculate objects intersecting the picking ray
       const intersects = raycaster.intersectObjects(this.scene.children, true)
 
-      // Reset scale of all players
-      this.players.forEach((player) => {
-        if (player.hover == false) {
-          player.mesh.position.y = 0.5
-        }
-      })
+
 
       if (intersects.length > 0) {
         const intersect = intersects[0]

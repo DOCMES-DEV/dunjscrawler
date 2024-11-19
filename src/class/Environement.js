@@ -38,16 +38,11 @@ export default class Enviroment {
               child.material.metalness = 0.1
             }
           })
-          console.log('Wall corner model loaded successfully')
 
           resolve()
         },
-        (xhr) => {
-          console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
-        },
-        (error) => {
-          console.error('Error loading wall corner model:', error)
-        },
+        (xhr) => {},
+        (error) => {},
       )
     })
   }
@@ -77,16 +72,11 @@ export default class Enviroment {
               child.material.metalness = 0.1
             }
           })
-          console.log('Wall model loaded successfully')
 
           resolve()
         },
-        (xhr) => {
-          console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
-        },
-        (error) => {
-          console.error('Error loading wall model:', error)
-        },
+        (xhr) => {},
+        (error) => {},
       )
     })
   }
@@ -99,27 +89,14 @@ export default class Enviroment {
   displayWallCorner(x, y, type, orientation) {
     const blockSize = this.size / this.subdivise
     const posX = x * blockSize - this.size / 2 + blockSize / 2
-    const posY = blockSize / 2
+    const posY = blockSize / 2 - 2
     const posZ = y * blockSize - this.size / 2 + blockSize / 2
 
     if (this.wallCornerModel) {
       const corner = this.wallCornerModel.clone()
       corner.position.set(posX, posY, posZ)
       corner.scale.set(0.4, 0.4, 0.4) // Adjust the scale if necessary
-      console.log('corner', corner, orientation, () => {
-        switch (orientation) {
-          case 'topLeft':
-            return 0
-          case 'topRight':
-            return Math.PI / 2
-          case 'bottomLeft':
-            return -Math.PI / 2
-          case 'bottomRight':
-            return Math.PI
-          default:
-            return 0
-        }
-      })
+
       corner.rotation.y = (() => {
         if (orientation === 'topLeft') {
           return Math.PI / 2
@@ -131,7 +108,6 @@ export default class Enviroment {
           return -Math.PI / 2
         }
       })()
-      console.log('corner', corner, orientation, corner.rotation.y)
       this.scene.add(corner)
       this.walls.push(corner)
     } else {
@@ -140,19 +116,22 @@ export default class Enviroment {
   }
 
   displayWall(x, y, type, orientation = null) {
-    console.log('displayWall', x, y, type)
     let gridX = x
     let gridY = y
+    const blockSize = this.size / this.subdivise
+
     this.type = type
     x = (x / this.subdivise) * this.size - this.size / 2
     y = (y / this.subdivise) * this.size - this.size / 2
-    // get the center of the case and set the wall on it
+
+    let z = blockSize / 2 - 2
+
     x += this.size / this.subdivise / 2
     y += this.size / this.subdivise / 2
 
     if (this.wallModel) {
       const wall = this.wallModel.clone()
-      wall.position.set(x, this.size / this.subdivise / 2, y)
+      wall.position.set(x, z, y)
       wall.scale.set(0.4, 0.4, 0.4) // Adjust the scale if necessary
       // console.log('Mur ajouté', {
       //   userData: wall.userData,
@@ -160,8 +139,6 @@ export default class Enviroment {
       //   rotate: wall.rotation.y,
       // })
       wall.rotation.y = (() => {
-        console.log('gridY', gridY, this.size - 1, this.subdivise)
-        console.log('gridX', gridX, this.size - 1)
         if (gridX === 0) {
           return Math.PI / 2
         }
@@ -172,7 +149,6 @@ export default class Enviroment {
           return Math.PI
         }
         if (gridY === this.subdivise - 1) {
-          console.log('gridY === this.size - 1')
           return Math.PI
         }
         return 0
@@ -207,7 +183,6 @@ export default class Enviroment {
     }
     this.initBorderWalls()
     // Example of creating walls
-    console.log('initWalls')
     this.createWall(2, 2, 'wall')
     this.createWall(3, 2, 'wall')
     this.createWall(4, 2, 'wall')
